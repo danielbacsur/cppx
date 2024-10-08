@@ -91,8 +91,39 @@ class JSON {
   }
 
   friend std::ostream& operator<<(std::ostream& os, const JSON& json) {
-    os << json.stringify();
-    return os;
+    if (json.type == Class::String) {
+      return os << std::get<String>(json.value);
+    } else {
+      return os << json.stringify();
+    }
+  }
+
+  JSON& operator[](const std::string& key) {
+    if (type != Class::Object) {
+      type = Class::Object;
+      value = Object();
+    }
+    Object& obj = std::get<Object>(value);
+    auto it = std::find_if(obj.begin(), obj.end(), [&](const std::pair<std::string, JSON>& pair) { return pair.first == key; });
+    if (it != obj.end()) {
+      return it->second;
+    } else {
+      obj.emplace_back(std::make_pair(key, JSON()));
+      return obj.back().second;
+    }
+  }
+
+  const JSON& operator[](const std::string& key) const {
+    if (type != Class::Object) {
+      throw std::runtime_error("JSON value is not an object.");
+    }
+    const Object& obj = std::get<Object>(value);
+    auto it = std::find_if(obj.begin(), obj.end(), [&](const std::pair<std::string, JSON>& pair) { return pair.first == key; });
+    if (it != obj.end()) {
+      return it->second;
+    } else {
+      throw std::out_of_range("Key not found: " + key);
+    }
   }
 
  private:
@@ -483,6 +514,17 @@ int main() {
           }
         }
       }
+    };
+
+    json["mutations"]["boolean"] = true;
+    json["mutations"]["integral"] = 420;
+    json["mutations"]["floating"] = 3.14;
+    json["mutations"]["string"] = "Hello, world!";
+    json["mutations"]["array"] = std::vector<JSON>{nullptr, true, 42, 3.14, "Hello, world!"};
+    json["mutations"]["object"] = JSON{
+      "first", 1,
+      "second", 2,
+      "third", 3
     };
 
     std::cout << "\033[2J\033[1;1H" << json << std::endl;
