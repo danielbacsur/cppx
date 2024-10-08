@@ -30,7 +30,7 @@ int main() {
 
     if (current_write_time != last_write_time) {
       std::system(("pkill -f " + output_binary).c_str());
-      std::system(("g++ " + filename + " -o " + output_binary + " -std=c++20").c_str());
+      std::system(("g++ " + filename + " -o " + output_binary + " -std=c++20 -I/opt/homebrew/include -L/opt/homebrew/lib -lboost_system").c_str());
       std::system((output_binary + " &").c_str());
       last_write_time = current_write_time;
     }
