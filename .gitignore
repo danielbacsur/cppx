@@ -1,2 +1,5 @@
 .cppx
 .vscode
+bin
+lib
+build
