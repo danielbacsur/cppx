@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
+    - name: Set up C++ compiler for Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install g++ -y
+
+    - name: Set up C++ compiler for macOS
+      if: matrix.os == 'macos-latest'
+      run: brew install gcc
+
+    - name: Set up C++ compiler for Windows
+      if: matrix.os == 'windows-latest'
+      run: choco install mingw -y
+
+    - name: Build on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: g++ build.cpp -o build --std=c++20
+
+    - name: Build on macOS
+      if: matrix.os == 'macos-latest'
+      run: g++ build.cpp -o build --std=c++20
+
+    - name: Build on Windows
+      if: matrix.os == 'windows-latest'
+      run: g++ build.cpp -o build.exe --std=c++20
+
+    - name: Run on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: ./build
+
+    - name: Run on macOS
+      if: matrix.os == 'macos-latest'
+      run: ./build
+
+    - name: Run on Windows
+      if: matrix.os == 'windows-latest'
+      run: ./build.exe
