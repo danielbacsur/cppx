@@ -11,13 +11,11 @@ int main() {
   const std::string build_bin_dir = "bin";
   const std::string lib_name = "libcppx.a";
 
-  if (std::system(("mkdir -p " + build_lib_dir).c_str()) != 0) {
-    std::cerr << "Error: Failed to create library build directory" << std::endl;
-    return 1;
-  }
-
-  if (std::system(("mkdir -p " + build_bin_dir).c_str()) != 0) {
-    std::cerr << "Error: Failed to create binary build directory" << std::endl;
+  try {
+    std::filesystem::create_directories(build_lib_dir);
+    std::filesystem::create_directories(build_bin_dir);
+  } catch (const std::filesystem::filesystem_error &e) {
+    std::cerr << "Error: Failed to create build directories: " << e.what() << std::endl;
     return 1;
   }
 
@@ -38,8 +36,10 @@ int main() {
     std::filesystem::path object_path = build_lib_dir / relative_path;
     object_path.replace_extension(".o");
 
-    if (std::system(("mkdir -p " + object_path.parent_path().string()).c_str()) != 0) {
-      std::cerr << "Error: Failed to create directory for " << object_path << std::endl;
+    try {
+      std::filesystem::create_directories(object_path.parent_path());
+    } catch (const std::filesystem::filesystem_error &e) {
+      std::cerr << "Error: Failed to create directory for " << object_path << ": " << e.what() << std::endl;
       return 1;
     }
 
