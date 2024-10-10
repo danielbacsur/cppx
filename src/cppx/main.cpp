@@ -1,67 +1,42 @@
-#include <chrono>
+#include <fstream>
 #include <iostream>
-#include <random>
-#include <string>
-#include <thread>
+#include <sstream>
 
-#include "cppx/json.hpp"
+#include "cppx/preprocessor.hpp"
 
-int main() {
-  std::mt19937 rng(std::random_device{}());
-  std::uniform_int_distribution<int> dist(1000, 9999);
-
-  while (true) {
-    JSON json = {
-      "html", {
-        "children", {
-          "head", {
-            "children", {
-              "title", nullptr
-            }
-          },
-          "body", {
-            "children", {
-              "h1", {
-                "children", "Welcome to the landing page!"
-              },
-              "p", {
-                "children", "Your random number is: " + std::to_string(dist(rng))
-              },
-              "", "Hello, ",
-              "strong", {
-                "children", "world"
-              },
-              "", "!",
-              "footer", {
-                "children", "© 2024 CPPX 🚀"
-              }
-            }
-          }
-        }
-      }
-    };
-
-    json["mutations"]["boolean"] = true;
-    json["mutations"]["integral"] = 420;
-    json["mutations"]["floating"] = 3.14;
-    json["mutations"]["string"] = "Hello, world!";
-    json["mutations"]["array"] = std::vector<JSON>{nullptr, true, 420, 3.14, "Hello, world!"};
-    json["mutations"]["object"] = JSON{
-        "first", 1,
-        "second", 2,
-        "third", 3
-    };
-
-    std::cout << "\033[2J\033[1;1H" << json << std::endl;
-
-    try {
-      JSON parsed_json = JSON::parse(json.stringify());
-    } catch (const std::exception& e) {
-      std::cerr << "Parse error: " << e.what() << std::endl;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+std::string ReadFile(const std::string& filePath) {
+  std::ifstream inFile(filePath);
+  if (!inFile) {
+    std::cerr << "Error: Unable to open input file: " << filePath << std::endl;
+    return "";
   }
+  std::stringstream buffer;
+  buffer << inFile.rdbuf();
+  return buffer.str();
+}
+
+void WriteFile(const std::string& filePath, const std::string& content) {
+  std::ofstream outFile(filePath);
+  if (!outFile) {
+    std::cerr << "Error: Unable to open output file: " << filePath << std::endl;
+    return;
+  }
+  outFile << content;
+}
+
+int main(int argc, char* argv[]) {
+  if (argc != 3) {
+    std::cerr << "Usage: cppx <input_file> <output_file>" << std::endl;
+    return 1;
+  }
+
+  std::string inputFilePath = argv[1];
+  std::string outputFilePath = argv[2];
+
+  std::string inputScript = ReadFile(inputFilePath);
+  std::string transformedScript = Preprocessor::Process(inputScript);
+
+  WriteFile(outputFilePath, transformedScript);
 
   return 0;
 }

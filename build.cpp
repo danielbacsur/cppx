@@ -24,6 +24,7 @@ void build() {
 
   std::vector<std::filesystem::path> lib_cpp_files = {
     "src/cppx/json.cpp",
+    "src/cppx/preprocessor.cpp"
   };
 
   std::vector<std::filesystem::path> exe_sources = {
