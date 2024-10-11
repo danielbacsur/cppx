@@ -283,7 +283,7 @@ std::string Preprocessor::GenerateJSON(const DOMNode& node, int indent) {
       os << ",\n";
     }
 
-    os << indentation << "        \"children\", std::vector<JSON> {\n";
+    os << indentation << "        \"children\", JSON::Array {\n";
     for (size_t i = 0; i < node.children.size(); ++i) {
       os << GenerateJSON(node.children[i], indent + 12);
       if (i != node.children.size() - 1) {
