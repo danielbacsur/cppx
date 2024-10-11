@@ -69,28 +69,7 @@ std::ostream& operator<<(std::ostream& os, const JSON& json) {
 }
 
 bool JSON::operator==(const JSON& rhs) const {
-  if (type != rhs.type) {
-    return false;
-  }
-
-  switch (type) {
-    case Class::Null:
-      return true;
-    case Class::Boolean:
-      return std::get<Boolean>(value) == std::get<Boolean>(rhs.value);
-    case Class::Integral:
-      return std::get<Integral>(value) == std::get<Integral>(rhs.value);
-    case Class::Floating:
-      return std::get<Floating>(value) == std::get<Floating>(rhs.value);
-    case Class::String:
-      return std::get<String>(value) == std::get<String>(rhs.value);
-    case Class::Array:
-      return std::get<Array>(value) == std::get<Array>(rhs.value);
-    case Class::Object:
-      return std::get<Object>(value) == std::get<Object>(rhs.value);
-  }
-
-  return false;
+  return (type == rhs.type) && (value == rhs.value);
 }
 
 JSON& JSON::operator[](const std::string& key) {
