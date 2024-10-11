@@ -594,3 +594,5 @@ JSON JSON::parseObject(const std::string& s, size_t& pos) {
   }
   return JSON(obj);
 }
+
+JSON::Type JSON::type() const { return type_; }

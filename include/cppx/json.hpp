@@ -66,6 +66,11 @@ class JSON {
   std::string stringify() const;
   static JSON parse(const std::string& s);
 
+  Type type() const;
+
+  template <typename T>
+  const T& value() const;
+
  private:
   Type type_;
   std::variant<Null, Boolean, Integer, Floating, String, Array, Object, Callable> value_;
@@ -85,3 +90,11 @@ class JSON {
   static JSON parseArray(const std::string& s, size_t& pos);
   static JSON parseObject(const std::string& s, size_t& pos);
 };
+
+template <typename T>
+const T& JSON::value() const {
+  if (!std::holds_alternative<T>(value_)) {
+    throw std::runtime_error("Type mismatch when accessing JSON value.");
+  }
+  return std::get<T>(value_);
+}
