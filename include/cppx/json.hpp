@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <any>
 #include <cctype>
 #include <chrono>
 #include <initializer_list>
@@ -54,6 +55,15 @@ class JSON {
   bool operator==(const JSON& rhs) const;
   JSON& operator[](const std::string& key);
   const JSON& operator[](const std::string& key) const;
+
+  template <typename T>
+  static T get(const JSON& json) {
+    try {
+      return std::get<T>(json.value);
+    } catch (const std::bad_variant_access&) {
+      throw std::runtime_error("Type mismatch when accessing JSON value.");
+    }
+  }
 
  private:
   static std::string escapeString(const String& s);
