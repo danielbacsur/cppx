@@ -1,81 +1,87 @@
 #pragma once
 
 #include <algorithm>
-#include <any>
 #include <cctype>
-#include <chrono>
+#include <functional>
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 #include <variant>
 #include <vector>
 
 class JSON {
  public:
-  enum class Class { Null, Boolean, Integral, Floating, String, Array, Object };
-
- private:
-  Class type;
-
-  using Null = std::nullptr_t;
+  using Null = std::monostate;
   using Boolean = bool;
-  using Integral = int;
+  using Integer = int;
   using Floating = double;
   using String = std::string;
   using Array = std::vector<JSON>;
   using Object = std::vector<std::pair<std::string, JSON>>;
+  using Callable = std::function<void()>;
 
-  std::variant<Null, Boolean, Integral, Floating, String, Array, Object> value;
+  enum class Type { Null, Boolean, Integer, Floating, String, Array, Object, Callable };
 
- public:
   JSON();
   JSON(Null);
-  JSON(Boolean);
-  JSON(Integral);
-  JSON(Floating);
-  JSON(const String&);
-  JSON(String&&);
-  JSON(const char*);
-  JSON(const Array&);
-  JSON(Array&&);
-  JSON(const Object&);
-  JSON(Object&&);
+  JSON(Boolean value);
+  JSON(Integer value);
+  JSON(Floating value);
+  JSON(const String& value);
+  JSON(String&& value);
+  JSON(const char* value);
+  JSON(const Array& value);
+  JSON(Array&& value);
+  JSON(const Object& value);
+  JSON(Object&& value);
+
+  template <typename F, typename = std::enable_if_t<std::is_invocable_r_v<void, F>>>
+  JSON(F&& func) : type_(Type::Callable), value_(Callable(std::forward<F>(func))) {}
+
   JSON(std::initializer_list<JSON> init);
+
+  explicit operator Null() const;
+  explicit operator Boolean() const;
+  explicit operator Integer() const;
+  explicit operator Floating() const;
+  explicit operator String() const;
+  explicit operator Array() const;
+  explicit operator Object() const;
+  explicit operator Callable() const;
+
+  JSON& operator[](const std::string& key);
+  const JSON& operator[](const std::string& key) const;
+  JSON& operator[](size_t index);
+  const JSON& operator[](size_t index) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const JSON& json);
+
+  bool operator==(const JSON& rhs) const;
+  bool operator!=(const JSON& rhs) const;
 
   std::string stringify() const;
   static JSON parse(const std::string& s);
 
-  friend std::ostream& operator<<(std::ostream& os, const JSON& json);
-  bool operator==(const JSON& rhs) const;
-  JSON& operator[](const std::string& key);
-  const JSON& operator[](const std::string& key) const;
-
-  template <typename T>
-  static T get(const JSON& json) {
-    try {
-      return std::get<T>(json.value);
-    } catch (const std::bad_variant_access&) {
-      throw std::runtime_error("Type mismatch when accessing JSON value.");
-    }
-  }
-
  private:
+  Type type_;
+  std::variant<Null, Boolean, Integer, Floating, String, Array, Object, Callable> value_;
+
   static std::string escapeString(const String& s);
-  static std::string codepoint_to_utf8(unsigned int cp);
-  static std::string parse_unicode_escape(const std::string& s, size_t& pos);
-  static void skip_whitespace(const std::string& s, size_t& pos);
-  void stringify_helper(std::ostringstream& oss) const;
-  static JSON parse_helper(const std::string& s, size_t& pos);
-  static JSON parse_null(const std::string& s, size_t& pos);
-  static JSON parse_boolean(const std::string& s, size_t& pos);
-  static JSON parse_number(const std::string& s, size_t& pos);
-  static JSON parse_string(const std::string& s, size_t& pos);
-  static JSON parse_array(const std::string& s, size_t& pos);
-  static JSON parse_object(const std::string& s, size_t& pos);
+  static std::string codepointToUTF8(unsigned int cp);
+  static std::string parseUnicodeEscape(const std::string& s, size_t& pos);
+  static void skipWhitespace(const std::string& s, size_t& pos);
+
+  void stringifyHelper(std::ostringstream& oss) const;
+
+  static JSON parseHelper(const std::string& s, size_t& pos);
+  static JSON parseNull(const std::string& s, size_t& pos);
+  static JSON parseBoolean(const std::string& s, size_t& pos);
+  static JSON parseNumber(const std::string& s, size_t& pos);
+  static JSON parseString(const std::string& s, size_t& pos);
+  static JSON parseArray(const std::string& s, size_t& pos);
+  static JSON parseObject(const std::string& s, size_t& pos);
 };

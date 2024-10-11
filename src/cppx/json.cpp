@@ -1,41 +1,41 @@
 #include "cppx/json.hpp"
 
-JSON::JSON() : type(Class::Null), value(std::in_place_type<JSON::Null>, nullptr) {}
+JSON::JSON() : type_(Type::Null), value_(std::in_place_type<std::monostate>) {}
 
-JSON::JSON(Null) : type(Class::Null), value(std::in_place_type<JSON::Null>, nullptr) {}
+JSON::JSON(Null) : type_(Type::Null), value_(std::in_place_type<std::monostate>) {}
 
-JSON::JSON(Boolean b) : type(Class::Boolean), value(std::in_place_type<JSON::Boolean>, b) {}
+JSON::JSON(Boolean value) : type_(Type::Boolean), value_(std::in_place_type<Boolean>, value) {}
 
-JSON::JSON(Integral i) : type(Class::Integral), value(std::in_place_type<JSON::Integral>, i) {}
+JSON::JSON(Integer value) : type_(Type::Integer), value_(std::in_place_type<Integer>, value) {}
 
-JSON::JSON(Floating d) : type(Class::Floating), value(std::in_place_type<JSON::Floating>, d) {}
+JSON::JSON(Floating value) : type_(Type::Floating), value_(std::in_place_type<Floating>, value) {}
 
-JSON::JSON(const String& s) : type(Class::String), value(std::in_place_type<JSON::String>, s) {}
+JSON::JSON(const String& value) : type_(Type::String), value_(std::in_place_type<String>, value) {}
 
-JSON::JSON(String&& s) : type(Class::String), value(std::in_place_type<JSON::String>, std::move(s)) {}
+JSON::JSON(String&& value) : type_(Type::String), value_(std::in_place_type<String>, std::move(value)) {}
 
-JSON::JSON(const char* s) : type(Class::String), value(std::in_place_type<JSON::String>, String(s)) {}
+JSON::JSON(const char* value) : type_(Type::String), value_(std::in_place_type<String>, value) {}
 
-JSON::JSON(const Array& arr) : type(Class::Array), value(std::in_place_type<JSON::Array>, arr) {}
+JSON::JSON(const Array& value) : type_(Type::Array), value_(std::in_place_type<Array>, value) {}
 
-JSON::JSON(Array&& arr) : type(Class::Array), value(std::in_place_type<JSON::Array>, std::move(arr)) {}
+JSON::JSON(Array&& value) : type_(Type::Array), value_(std::in_place_type<Array>, std::move(value)) {}
 
-JSON::JSON(const Object& obj) : type(Class::Object), value(std::in_place_type<JSON::Object>, obj) {}
+JSON::JSON(const Object& value) : type_(Type::Object), value_(std::in_place_type<Object>, value) {}
 
-JSON::JSON(Object&& obj) : type(Class::Object), value(std::in_place_type<JSON::Object>, std::move(obj)) {}
+JSON::JSON(Object&& value) : type_(Type::Object), value_(std::in_place_type<Object>, std::move(value)) {}
 
 JSON::JSON(std::initializer_list<JSON> init) {
   if (init.size() % 2 != 0) {
     throw std::invalid_argument("Initializer list must contain an even number of elements (key-value pairs).");
   }
-
+  
   Object obj;
   auto it = init.begin();
   while (it != init.end()) {
-    if (it->type != Class::String) {
+    if (it->type_ != Type::String) {
       throw std::invalid_argument("Keys must be strings.");
     }
-    String key = std::get<String>(it->value);
+    String key = std::get<String>(it->value_);
     ++it;
     if (it == init.end()) {
       throw std::invalid_argument("Missing value for key: " + key);
@@ -44,59 +44,250 @@ JSON::JSON(std::initializer_list<JSON> init) {
     obj.emplace_back(std::make_pair(std::move(key), std::move(val)));
     ++it;
   }
-
-  type = Class::Object;
-  value.emplace<JSON::Object>(std::move(obj));
+  type_ = Type::Object;
+  value_.emplace<Object>(std::move(obj));
 }
+
+JSON::operator Null() const {
+  if (type_ != Type::Null) {
+    throw std::runtime_error("JSON value is not null.");
+  }
+  return Null{};
+}
+
+JSON::operator Boolean() const {
+  if (type_ != Type::Boolean) {
+    throw std::runtime_error("JSON value is not a boolean.");
+  }
+  return std::get<Boolean>(value_);
+}
+
+JSON::operator Integer() const {
+  if (type_ != Type::Integer) {
+    throw std::runtime_error("JSON value is not an integer.");
+  }
+  return std::get<Integer>(value_);
+}
+
+JSON::operator Floating() const {
+  if (type_ != Type::Floating) {
+    throw std::runtime_error("JSON value is not a floating-point number.");
+  }
+  return std::get<Floating>(value_);
+}
+
+JSON::operator String() const {
+  if (type_ != Type::String) {
+    throw std::runtime_error("JSON value is not a string.");
+  }
+  return std::get<String>(value_);
+}
+
+JSON::operator Array() const {
+  if (type_ != Type::Array) {
+    throw std::runtime_error("JSON value is not an array.");
+  }
+  return std::get<Array>(value_);
+}
+
+JSON::operator Object() const {
+  if (type_ != Type::Object) {
+    throw std::runtime_error("JSON value is not an object.");
+  }
+  return std::get<Object>(value_);
+}
+
+JSON::operator Callable() const {
+  if (type_ != Type::Callable) {
+    throw std::runtime_error("JSON value is not a callable.");
+  }
+  return std::get<Callable>(value_);
+}
+
+JSON& JSON::operator[](const std::string& key) {
+  if (type_ != Type::Object) {
+    type_ = Type::Object;
+    value_.emplace<Object>();
+  }
+  Object& obj = std::get<Object>(value_);
+  for (auto& pair : obj) {
+    if (pair.first == key) {
+      return pair.second;
+    }
+  }
+  obj.emplace_back(std::make_pair(key, JSON()));
+  return obj.back().second;
+}
+
+const JSON& JSON::operator[](const std::string& key) const {
+  if (type_ != Type::Object) {
+    throw std::runtime_error("JSON value is not an object.");
+  }
+  const Object& obj = std::get<Object>(value_);
+  for (const auto& pair : obj) {
+    if (pair.first == key) {
+      return pair.second;
+    }
+  }
+  throw std::out_of_range("Key not found: " + key);
+}
+
+JSON& JSON::operator[](size_t index) {
+  if (type_ != Type::Array) {
+    throw std::runtime_error("JSON value is not an array.");
+  }
+  Array& arr = std::get<Array>(value_);
+  if (index >= arr.size()) {
+    throw std::out_of_range("Index out of range.");
+  }
+  return arr[index];
+}
+
+const JSON& JSON::operator[](size_t index) const {
+  if (type_ != Type::Array) {
+    throw std::runtime_error("JSON value is not an array.");
+  }
+  const Array& arr = std::get<Array>(value_);
+  if (index >= arr.size()) {
+    throw std::out_of_range("Index out of range.");
+  }
+  return arr[index];
+}
+
+std::ostream& operator<<(std::ostream& os, const JSON& json) {
+  switch (json.type_) {
+    case JSON::Type::Null:
+      os << "null";
+      break;
+    case JSON::Type::Boolean:
+      os << (std::get<JSON::Boolean>(json.value_) ? "true" : "false");
+      break;
+    case JSON::Type::Integer:
+      os << std::get<JSON::Integer>(json.value_);
+      break;
+    case JSON::Type::Floating:
+      os << std::get<JSON::Floating>(json.value_);
+      break;
+    case JSON::Type::String:
+      os << '"' << JSON::escapeString(std::get<JSON::String>(json.value_)) << '"';
+      break;
+    case JSON::Type::Array: {
+      os << '[';
+      const JSON::Array& arr = std::get<JSON::Array>(json.value_);
+      for (size_t i = 0; i < arr.size(); ++i) {
+        os << arr[i];
+        if (i != arr.size() - 1) os << ", ";
+      }
+      os << ']';
+      break;
+    }
+    case JSON::Type::Object: {
+      os << '{';
+      const JSON::Object& obj = std::get<JSON::Object>(json.value_);
+      for (size_t i = 0; i < obj.size(); ++i) {
+        os << '"' << JSON::escapeString(obj[i].first) << "\": " << obj[i].second;
+        if (i != obj.size() - 1) os << ", ";
+      }
+      os << '}';
+      break;
+    }
+    case JSON::Type::Callable:
+      os << "<callable>";
+      break;
+  }
+  return os;
+}
+
+bool JSON::operator==(const JSON& rhs) const {
+  if (type_ != rhs.type_) {
+    return false;
+  }
+  switch (type_) {
+    case Type::Null:
+      return true;
+    case Type::Boolean:
+      return std::get<Boolean>(value_) == std::get<Boolean>(rhs.value_);
+    case Type::Integer:
+      return std::get<Integer>(value_) == std::get<Integer>(rhs.value_);
+    case Type::Floating:
+      return std::get<Floating>(value_) == std::get<Floating>(rhs.value_);
+    case Type::String:
+      return std::get<String>(value_) == std::get<String>(rhs.value_);
+    case Type::Array:
+      return std::get<Array>(value_) == std::get<Array>(rhs.value_);
+    case Type::Object:
+      return std::get<Object>(value_) == std::get<Object>(rhs.value_);
+    case Type::Callable:
+      return false;
+  }
+  return false;
+}
+
+bool JSON::operator!=(const JSON& rhs) const { return !(*this == rhs); }
 
 std::string JSON::stringify() const {
   std::ostringstream oss;
-  stringify_helper(oss);
+  stringifyHelper(oss);
   return oss.str();
+}
+
+void JSON::stringifyHelper(std::ostringstream& oss) const {
+  switch (type_) {
+    case Type::Null:
+      oss << "null";
+      break;
+    case Type::Boolean:
+      oss << (std::get<Boolean>(value_) ? "true" : "false");
+      break;
+    case Type::Integer:
+      oss << std::get<Integer>(value_);
+      break;
+    case Type::Floating:
+      oss << std::get<Floating>(value_);
+      break;
+    case Type::String:
+      oss << '"' << escapeString(std::get<String>(value_)) << '"';
+      break;
+    case Type::Array: {
+      oss << '[';
+      const Array& arr = std::get<Array>(value_);
+      for (size_t i = 0; i < arr.size(); ++i) {
+        arr[i].stringifyHelper(oss);
+        if (i != arr.size() - 1) oss << ", ";
+      }
+      oss << ']';
+      break;
+    }
+    case Type::Object: {
+      oss << '{';
+      const Object& obj = std::get<Object>(value_);
+      for (size_t i = 0; i < obj.size(); ++i) {
+        oss << '"' << escapeString(obj[i].first) << "\": ";
+        obj[i].second.stringifyHelper(oss);
+        if (i != obj.size() - 1) oss << ", ";
+      }
+      oss << '}';
+      break;
+    }
+    case Type::Callable:
+      oss << "<callable>";
+      break;
+  }
 }
 
 JSON JSON::parse(const std::string& s) {
   size_t pos = 0;
-  return parse_helper(s, pos);
+  JSON result = parseHelper(s, pos);
+  skipWhitespace(s, pos);
+  if (pos != s.size()) {
+    throw std::runtime_error("Extra characters after parsing JSON.");
+  }
+  return result;
 }
 
-std::ostream& operator<<(std::ostream& os, const JSON& json) {
-  if (json.type == JSON::Class::String) {
-    return os << std::get<JSON::String>(json.value);
-  } else {
-    return os << json.stringify();
-  }
-}
-
-bool JSON::operator==(const JSON& rhs) const {
-  return (type == rhs.type) && (value == rhs.value);
-}
-
-JSON& JSON::operator[](const std::string& key) {
-  if (type != Class::Object) {
-    type = Class::Object;
-    value.emplace<JSON::Object>();
-  }
-  Object& obj = std::get<Object>(value);
-  auto it = std::find_if(obj.begin(), obj.end(), [&](const std::pair<std::string, JSON>& pair) { return pair.first == key; });
-  if (it != obj.end()) {
-    return it->second;
-  } else {
-    obj.emplace_back(std::make_pair(key, JSON()));
-    return obj.back().second;
-  }
-}
-
-const JSON& JSON::operator[](const std::string& key) const {
-  if (type != Class::Object) {
-    throw std::runtime_error("JSON value is not an object.");
-  }
-  const Object& obj = std::get<Object>(value);
-  auto it = std::find_if(obj.begin(), obj.end(), [&](const std::pair<std::string, JSON>& pair) { return pair.first == key; });
-  if (it != obj.end()) {
-    return it->second;
-  } else {
-    throw std::out_of_range("Key not found: " + key);
+void JSON::skipWhitespace(const std::string& s, size_t& pos) {
+  while (pos < s.size() && std::isspace(static_cast<unsigned char>(s[pos]))) {
+    ++pos;
   }
 }
 
@@ -136,7 +327,7 @@ std::string JSON::escapeString(const String& s) {
   return oss.str();
 }
 
-std::string JSON::codepoint_to_utf8(unsigned int cp) {
+std::string JSON::codepointToUTF8(unsigned int cp) {
   std::string utf8;
   if (cp <= 0x7F) {
     utf8 += static_cast<char>(cp);
@@ -158,7 +349,7 @@ std::string JSON::codepoint_to_utf8(unsigned int cp) {
   return utf8;
 }
 
-std::string JSON::parse_unicode_escape(const std::string& s, size_t& pos) {
+std::string JSON::parseUnicodeEscape(const std::string& s, size_t& pos) {
   pos++;
   if (pos + 4 > s.size()) {
     throw std::runtime_error("Incomplete Unicode escape sequence");
@@ -196,87 +387,39 @@ std::string JSON::parse_unicode_escape(const std::string& s, size_t& pos) {
     unsigned int high_ten = code_unit - 0xD800;
     unsigned int low_ten = low_code_unit - 0xDC00;
     unsigned int combined = 0x10000 + ((high_ten << 10) | low_ten);
-    return codepoint_to_utf8(combined);
+    return codepointToUTF8(combined);
   } else if (code_unit >= 0xDC00 && code_unit <= 0xDFFF) {
     throw std::runtime_error("Unexpected low surrogate without preceding high surrogate");
   } else {
-    return codepoint_to_utf8(code_unit);
+    return codepointToUTF8(code_unit);
   }
 }
 
-void JSON::skip_whitespace(const std::string& s, size_t& pos) {
-  while (pos < s.size() && std::isspace(static_cast<unsigned char>(s[pos]))) {
-    ++pos;
-  }
-}
-
-void JSON::stringify_helper(std::ostringstream& oss) const {
-  switch (type) {
-    case Class::Null:
-      oss << "null";
-      break;
-    case Class::Boolean:
-      oss << (std::get<Boolean>(value) ? "true" : "false");
-      break;
-    case Class::Integral:
-      oss << std::get<Integral>(value);
-      break;
-    case Class::Floating: {
-      oss << std::get<Floating>(value);
-      break;
-    }
-    case Class::String:
-      oss << '"' << escapeString(std::get<String>(value)) << '"';
-      break;
-    case Class::Array: {
-      oss << '[';
-      const Array& arr = std::get<Array>(value);
-      for (size_t i = 0; i < arr.size(); ++i) {
-        arr[i].stringify_helper(oss);
-        if (i != arr.size() - 1) oss << ", ";
-      }
-      oss << ']';
-      break;
-    }
-    case Class::Object: {
-      oss << '{';
-      const Object& obj = std::get<Object>(value);
-      for (size_t i = 0; i < obj.size(); ++i) {
-        oss << '"' << escapeString(obj[i].first) << "\": ";
-        obj[i].second.stringify_helper(oss);
-        if (i != obj.size() - 1) oss << ", ";
-      }
-      oss << '}';
-      break;
-    }
-  }
-}
-
-JSON JSON::parse_helper(const std::string& s, size_t& pos) {
-  skip_whitespace(s, pos);
+JSON JSON::parseHelper(const std::string& s, size_t& pos) {
+  skipWhitespace(s, pos);
   if (pos >= s.size()) {
     throw std::runtime_error("Unexpected end of input");
   }
 
   char c = s[pos];
   if (c == 'n') {
-    return parse_null(s, pos);
+    return parseNull(s, pos);
   } else if (c == 't' || c == 'f') {
-    return parse_boolean(s, pos);
+    return parseBoolean(s, pos);
   } else if (c == '\"') {
-    return parse_string(s, pos);
+    return parseString(s, pos);
   } else if (c == '-' || std::isdigit(static_cast<unsigned char>(c))) {
-    return parse_number(s, pos);
+    return parseNumber(s, pos);
   } else if (c == '[') {
-    return parse_array(s, pos);
+    return parseArray(s, pos);
   } else if (c == '{') {
-    return parse_object(s, pos);
+    return parseObject(s, pos);
   } else {
     throw std::runtime_error(std::string("Invalid character at position ") + std::to_string(pos) + ": " + c);
   }
 }
 
-JSON JSON::parse_null(const std::string& s, size_t& pos) {
+JSON JSON::parseNull(const std::string& s, size_t& pos) {
   if (s.compare(pos, 4, "null") == 0) {
     pos += 4;
     return JSON();
@@ -285,7 +428,7 @@ JSON JSON::parse_null(const std::string& s, size_t& pos) {
   }
 }
 
-JSON JSON::parse_boolean(const std::string& s, size_t& pos) {
+JSON JSON::parseBoolean(const std::string& s, size_t& pos) {
   if (s.compare(pos, 4, "true") == 0) {
     pos += 4;
     return JSON(true);
@@ -297,7 +440,7 @@ JSON JSON::parse_boolean(const std::string& s, size_t& pos) {
   }
 }
 
-JSON JSON::parse_number(const std::string& s, size_t& pos) {
+JSON JSON::parseNumber(const std::string& s, size_t& pos) {
   size_t start = pos;
   if (s[pos] == '-') pos++;
   while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) pos++;
@@ -321,14 +464,14 @@ JSON JSON::parse_number(const std::string& s, size_t& pos) {
     if (iss.fail()) throw std::runtime_error("Invalid number: " + num_str);
     return JSON(d);
   } else {
-    Integral i;
+    Integer i;
     iss >> i;
     if (iss.fail()) throw std::runtime_error("Invalid number: " + num_str);
     return JSON(i);
   }
 }
 
-JSON JSON::parse_string(const std::string& s, size_t& pos) {
+JSON JSON::parseString(const std::string& s, size_t& pos) {
   if (s[pos] != '\"') throw std::runtime_error("Expected '\"' at the beginning of string");
   pos++;
   std::ostringstream oss;
@@ -376,8 +519,7 @@ JSON JSON::parse_string(const std::string& s, size_t& pos) {
           pos++;
           break;
         case 'u': {
-          pos--;
-          std::string utf8 = parse_unicode_escape(s, pos);
+          std::string utf8 = parseUnicodeEscape(s, pos);
           oss << utf8;
           break;
         }
@@ -392,23 +534,23 @@ JSON JSON::parse_string(const std::string& s, size_t& pos) {
   throw std::runtime_error("Unterminated string");
 }
 
-JSON JSON::parse_array(const std::string& s, size_t& pos) {
+JSON JSON::parseArray(const std::string& s, size_t& pos) {
   if (s[pos] != '[') throw std::runtime_error("Expected '[' at beginning of array");
   pos++;
-  skip_whitespace(s, pos);
+  skipWhitespace(s, pos);
   Array arr;
   if (pos < s.size() && s[pos] == ']') {
     pos++;
     return JSON(arr);
   }
   while (pos < s.size()) {
-    JSON value = parse_helper(s, pos);
+    JSON value = parseHelper(s, pos);
     arr.emplace_back(std::move(value));
-    skip_whitespace(s, pos);
+    skipWhitespace(s, pos);
     if (pos >= s.size()) throw std::runtime_error("Unterminated array");
     if (s[pos] == ',') {
       pos++;
-      skip_whitespace(s, pos);
+      skipWhitespace(s, pos);
     } else if (s[pos] == ']') {
       pos++;
       break;
@@ -419,30 +561,30 @@ JSON JSON::parse_array(const std::string& s, size_t& pos) {
   return JSON(arr);
 }
 
-JSON JSON::parse_object(const std::string& s, size_t& pos) {
+JSON JSON::parseObject(const std::string& s, size_t& pos) {
   if (s[pos] != '{') throw std::runtime_error("Expected '{' at beginning of object");
   pos++;
-  skip_whitespace(s, pos);
+  skipWhitespace(s, pos);
   Object obj;
   if (pos < s.size() && s[pos] == '}') {
     pos++;
     return JSON(obj);
   }
   while (pos < s.size()) {
-    skip_whitespace(s, pos);
+    skipWhitespace(s, pos);
     if (s[pos] != '\"') throw std::runtime_error("Expected '\"' at beginning of object key");
-    JSON key = parse_string(s, pos);
-    skip_whitespace(s, pos);
+    JSON key = parseString(s, pos);
+    skipWhitespace(s, pos);
     if (pos >= s.size() || s[pos] != ':') throw std::runtime_error("Expected ':' after key in object");
     pos++;
-    skip_whitespace(s, pos);
-    JSON value = parse_helper(s, pos);
-    obj.emplace_back(std::make_pair(std::get<String>(key.value), std::move(value)));
-    skip_whitespace(s, pos);
+    skipWhitespace(s, pos);
+    JSON value = parseHelper(s, pos);
+    obj.emplace_back(std::make_pair(std::get<String>(key.value_), std::move(value)));
+    skipWhitespace(s, pos);
     if (pos >= s.size()) throw std::runtime_error("Unterminated object");
     if (s[pos] == ',') {
       pos++;
-      skip_whitespace(s, pos);
+      skipWhitespace(s, pos);
     } else if (s[pos] == '}') {
       pos++;
       break;
