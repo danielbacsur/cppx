@@ -20,6 +20,7 @@ const std::string Preprocessor::header = (
   "// Any manual changes may be overwritten in future updates.\n"
   "\n"
   "#include \"cppx/json.hpp\"\n"
+  "#include \"cppx/page.hpp\"\n"
 );
 
 std::string Preprocessor::Trim(const std::string& str) {
