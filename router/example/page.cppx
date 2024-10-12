@@ -1,4 +1,4 @@
-auto LandingPage() {
+Page LandingPage() {
   return (
     <html>
       <head>
