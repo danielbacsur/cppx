@@ -1,0 +1,20 @@
+auto LandingPage() {
+  return (
+    <html>
+      <head>
+        <title>CPPX</title>
+      </head>
+      <body>
+        <h1>CPPX</h1>
+        <p>A high-performance reactive web framework in C++</p>
+        <button
+          onclick={[]() {
+            std::cout << "Hello, world!" << std::endl;
+          }}
+        >
+          Click me!
+        </button>
+      </body>
+    </html>
+  );
+}
