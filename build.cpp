@@ -8,15 +8,15 @@
 #include <vector>
 
 void build() {
-  const std::string include_dir = "include";
-  const std::string src_dir = "src";
-  const std::string build_lib_dir = "lib";
-  const std::string build_bin_dir = "bin";
+  const std::filesystem::path include_dir = "include";
+  const std::filesystem::path src_dir = "src";
+  const std::filesystem::path build_lib_dir = "lib";
+  const std::filesystem::path build_bin_dir = "bin";
   const std::string lib_name = "libcppx.a";
 
   try {
-    std::filesystem::create_directories(build_lib_dir);
-    std::filesystem::create_directories(build_bin_dir);
+    std::filesystem::create_directories(build_lib_dir / src_dir);
+    std::filesystem::create_directories(build_bin_dir / src_dir);
   } catch (const std::filesystem::filesystem_error &e) {
     std::cerr << "Error: Failed to create build directories: " << e.what() << std::endl;
     return;
@@ -37,7 +37,7 @@ void build() {
 
   for (const auto &cpp_file : lib_cpp_files) {
     std::filesystem::path relative_path = std::filesystem::relative(cpp_file, src_dir);
-    std::filesystem::path object_path = build_lib_dir / relative_path;
+    std::filesystem::path object_path = build_lib_dir / src_dir / relative_path;
     object_path.replace_extension(".o");
 
     try {
@@ -47,7 +47,8 @@ void build() {
       return;
     }
 
-    if (std::system(("g++ -c \"" + cpp_file.string() + "\" -I\"" + include_dir + "\" -std=c++20 -O3 -o \"" + object_path.string() + "\"").c_str()) != 0) {
+    std::string compile_cmd = "g++ -c \"" + cpp_file.string() + "\" -I\"" + include_dir.string() + "\" -std=c++20 -O3 -o \"" + object_path.string() + "\"";
+    if (std::system(compile_cmd.c_str()) != 0) {
       std::cerr << "Error: Compilation failed for " << cpp_file << std::endl;
       return;
     }
@@ -58,7 +59,8 @@ void build() {
   std::cout << "Archiving library..." << std::endl;
 
   if (!lib_object_files.empty()) {
-    std::string archive_cmd = "ar rcs \"" + build_lib_dir + "/" + lib_name + "\"";
+    std::filesystem::path archive_path = build_lib_dir / lib_name;
+    std::string archive_cmd = "ar rcs \"" + archive_path.string() + "\"";
 
     for (const auto &obj : lib_object_files) {
       archive_cmd += " \"" + obj.string() + "\"";
@@ -77,23 +79,25 @@ void build() {
 
   for (const auto &exe_src : exe_sources) {
     std::filesystem::path relative_path = std::filesystem::relative(exe_src, src_dir);
-    std::filesystem::path exe_obj_path = build_bin_dir / relative_path;
+    std::filesystem::path exe_obj_path = build_bin_dir / src_dir / relative_path;
     exe_obj_path.replace_extension(".o");
 
-    if (std::system(("mkdir -p " + exe_obj_path.parent_path().string()).c_str()) != 0) {
-      std::cerr << "Error: Failed to create directory for " << exe_obj_path << std::endl;
+    try {
+      std::filesystem::create_directories(exe_obj_path.parent_path());
+    } catch (const std::filesystem::filesystem_error &e) {
+      std::cerr << "Error: Failed to create directory for " << exe_obj_path << ": " << e.what() << std::endl;
       return;
     }
 
-    if (std::system(("g++ -c \"" + exe_src.string() + "\" -I\"" + include_dir + "\" -std=c++20 -O3 -o \"" + exe_obj_path.string() + "\"").c_str()) != 0) {
+    if (std::system(("g++ -c \"" + exe_src.string() + "\" -I\"" + include_dir.string() + "\" -std=c++20 -O3 -o \"" + exe_obj_path.string() + "\"").c_str()) != 0) {
       std::cerr << "Error: Compilation failed for executable source " << exe_src << std::endl;
       return;
     }
 
-    std::filesystem::path exe_output_path = exe_obj_path;
+    std::filesystem::path exe_output_path = build_bin_dir / src_dir / relative_path;
     exe_output_path.replace_extension("");
 
-    if (std::system(("g++ \"" + exe_obj_path.string() + "\" -L\"" + build_lib_dir + "\" -lcppx -std=c++20 -O3 -o \"" + exe_output_path.string() + "\"").c_str()) != 0) {
+    if (std::system(("g++ \"" + exe_obj_path.string() + "\" -L\"" + build_lib_dir.string() + "\" -lcppx -std=c++20 -O3 -o \"" + exe_output_path.string() + "\"").c_str()) != 0) {
       std::cerr << "Error: Linking failed for executable " << exe_output_path << std::endl;
       return;
     }
