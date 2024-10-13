@@ -31,26 +31,38 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: choco install mingw -y
 
+    - name: Create build directory on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: mkdir -p build/cppx/bin
+
+    - name: Create build directory on macOS
+      if: matrix.os == 'macos-latest'
+      run: mkdir -p build/cppx/bin
+
+    - name: Create build directory on Windows
+      if: matrix.os == 'windows-latest'
+      run: mkdir build\\cppx\\bin
+
     - name: Build on Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: g++ build.cpp -o build --std=c++20
+      run: g++ build.cpp -o build/cppx/bin/build --std=c++20
 
     - name: Build on macOS
       if: matrix.os == 'macos-latest'
-      run: g++ build.cpp -o build --std=c++20
+      run: g++ build.cpp -o build/cppx/bin/build --std=c++20
 
     - name: Build on Windows
       if: matrix.os == 'windows-latest'
-      run: g++ build.cpp -o build.exe --std=c++20
+      run: g++ build.cpp -o build\\cppx\\bin\\build.exe --std=c++20
 
     - name: Run on Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: ./build
+      run: ./build/cppx/bin/build
 
     - name: Run on macOS
       if: matrix.os == 'macos-latest'
-      run: ./build
+      run: ./build/cppx/bin/build
 
     - name: Run on Windows
       if: matrix.os == 'windows-latest'
-      run: ./build.exe
+      run: ./build/cppx/bin/build.exe

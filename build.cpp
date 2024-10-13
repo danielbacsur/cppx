@@ -10,8 +10,9 @@
 void build() {
   const std::filesystem::path include_dir = "include";
   const std::filesystem::path src_dir = "src";
-  const std::filesystem::path build_lib_dir = "lib";
-  const std::filesystem::path build_bin_dir = "bin";
+  const std::filesystem::path build_dir = "build/cppx";
+  const std::filesystem::path build_lib_dir = build_dir / "lib";
+  const std::filesystem::path build_bin_dir = build_dir / "bin";
   const std::string lib_name = "libcppx.a";
 
   try {
@@ -89,15 +90,17 @@ void build() {
       return;
     }
 
-    if (std::system(("g++ -c \"" + exe_src.string() + "\" -I\"" + include_dir.string() + "\" -std=c++20 -O3 -o \"" + exe_obj_path.string() + "\"").c_str()) != 0) {
+    std::string compile_exe_cmd = "g++ -c \"" + exe_src.string() + "\" -I\"" + include_dir.string() + "\" -std=c++20 -O3 -o \"" + exe_obj_path.string() + "\"";
+    if (std::system(compile_exe_cmd.c_str()) != 0) {
       std::cerr << "Error: Compilation failed for executable source " << exe_src << std::endl;
       return;
     }
 
     std::filesystem::path exe_output_path = build_bin_dir / src_dir / relative_path;
-    exe_output_path.replace_extension("");
+    exe_output_path.replace_extension(""); // Remove the .cpp extension
 
-    if (std::system(("g++ \"" + exe_obj_path.string() + "\" -L\"" + build_lib_dir.string() + "\" -lcppx -std=c++20 -O3 -o \"" + exe_output_path.string() + "\"").c_str()) != 0) {
+    std::string link_cmd = "g++ \"" + exe_obj_path.string() + "\" -L\"" + build_lib_dir.string() + "\" -lcppx -std=c++20 -O3 -o \"" + exe_output_path.string() + "\"";
+    if (std::system(link_cmd.c_str()) != 0) {
       std::cerr << "Error: Linking failed for executable " << exe_output_path << std::endl;
       return;
     }

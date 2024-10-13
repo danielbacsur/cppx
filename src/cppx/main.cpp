@@ -202,7 +202,7 @@ void build() {
     mainLinkCommand += " -L\"" + buildLibDir.string() + "\" -l" + projectAlias;
   }
 
-  mainLinkCommand += " -L\"lib\" -lcppx -ldl -std=c++20 -O3 -o \"" + mainExecutablePath.string() + "\"";
+  mainLinkCommand += " -L\"build/cppx/lib\" -lcppx -ldl -std=c++20 -O3 -o \"" + mainExecutablePath.string() + "\"";
 
   if (std::system(mainLinkCommand.c_str()) != 0) {
     std::cerr << "Error: Linking failed for main executable" << std::endl;
@@ -224,7 +224,7 @@ void build() {
           buildCommand += " -L\"" + buildLibDir.string() + "\" -l" + projectAlias;
         }
 
-        buildCommand += " -L\"lib\" -lcppx -o \"" + sharedObjectPath.string() + "\"";
+        buildCommand += " -L\"build/cppx/lib\" -lcppx -o \"" + sharedObjectPath.string() + "\"";
 
         if (std::system(buildCommand.c_str()) != 0) {
           std::cerr << "Error: Building bundle failed for " << entry.path() << std::endl;
