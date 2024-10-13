@@ -15,7 +15,7 @@ CPPX is a web framework that brings the power of C++ to reactive web development
 
 **🦄 Native JSON Support**: With CPPX, working with JSON data becomes as natural in C++ as it is in JavaScript. The framework includes a powerful JSON library that enables developers to parse, create, and manipulate JSON objects directly within their C++ code, significantly simplifying data handling and improving overall performance compared to runtime JSON parsing.
 
-**⛓️‍💥 Reactive Rerendering**: CPPX implements a sophisticated event handling system that bridges client-side interactions with server-side logic through an efficient signaling mechanism. This system ensures seamless integration between client-side events and server-side logic, providing efficient updates with minimal data transfer and real-time reactivity without full page reloads.
+**⛓️‍💥 Reactive Re-rendering**: CPPX implements a sophisticated event-handling system that bridges client-side interactions with server-side logic through an efficient signaling mechanism. This system ensures seamless integration between client-side events and server-side logic, providing efficient updates with minimal data transfer and real-time reactivity without full-page reloads.
 
 <p id="author" align="center">
   Made with ❤️ by <a href="https://github.com/danielbacsur" target="_blank">Daniel Bacsur</a>
