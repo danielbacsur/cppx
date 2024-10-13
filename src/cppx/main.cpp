@@ -64,10 +64,14 @@ void copyAndProcessFiles(const std::filesystem::path& sourceDir, const std::file
 
       if (destinationDir.string().find(".cppx/router") != std::string::npos) {
         std::regex functionPattern(R"(\bPage\s+(\w+)\s*\()");
-        fileContent = std::regex_replace(fileContent, functionPattern, "Page page(");
+        std::smatch match;
 
-        std::string externDeclaration = "extern \"C\" PageFunction getPageFunction() { return &page; }\n";
-        fileContent += "\n" + externDeclaration;
+        if (std::regex_search(fileContent, match, functionPattern) && match.size() > 1) {
+          std::string pageName = match[1].str();
+          fileContent = std::regex_replace(fileContent, functionPattern, "Page " + pageName + "(");
+          std::string externDeclaration = "extern \"C\" PageFunction getPageFunction() { return &" + pageName + "; }\n";
+          fileContent += "\n" + externDeclaration;
+        }
       }
 
       writeFile(destinationPath, fileContent);
